@@ -1,6 +1,6 @@
 {
 	"name": "ts_generator",
-	"description": "Automatic TypeScript interface and enum code generator from D types using compile-time reflection (traits & CTFE).",
+	"description": "Automatic TypeScript interface and enum code generator from D types compatible with vibe.d.",
 	"license": "MIT",
 	"authors": [
 		"Pablo De Nápoli"
@@ -14,6 +14,7 @@
 		"source"
 	],
 	"subPackages": [
-		"./example"
+		"./example",
+		"./example_vibe"
 	]
 }

@@ -4,7 +4,7 @@ import std.stdio : writeln, stderr;
 import std.getopt;
 import std.process : executeShell;
 import core.stdc.stdlib : exit;
-import ts_generator_for_d;
+import ts_generator;
 
 enum UserRole {
     admin,

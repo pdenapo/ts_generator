@@ -1,6 +1,7 @@
 # ts_generator
 
-A lightweight, zero-dependency D library for automatically generating TypeScript interface and enum definitions from D `struct`, `class`, and `enum` types using compile-time reflection (`__traits` and CTFE).
+A lightweight, zero-dependency D library for automatically generating TypeScript interface, enum, and **REST API Client** (`fetch`) code from D `struct`, `class`, `enum`, and `interface` types using compile-time reflection (`__traits` and CTFE).
+This library is compatible with vibe.d.
 
 [![DUB Package](https://img.shields.io/dub/v/ts_generator.svg)](https://code.dlang.org/packages/ts_generator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -10,12 +11,17 @@ A lightweight, zero-dependency D library for automatically generating TypeScript
 ## Features
 
 - **Compile-Time Generation**: Generates TypeScript code entirely at compile time using D traits and CTFE.
-- **Recursive Type Discovery**: Automatically finds and emits nested structs, classes, and enums referenced in your fields.
-- **D Enum Support**: Handles integer enums (`export enum ...`) and custom string enums (`export enum ...`).
-- **Nullable Support**: Translates `std.typecons.Nullable!T` fields to TypeScript union type `T | null`.
-- **Date & Time**: Automatically maps `std.datetime` types (`SysTime`, `DateTime`, `Date`) to ISO string representations (`string`).
-- **Collections**: Supports single & multi-dimensional dynamic/static arrays (`T[]`) and associative arrays (`{ [key: string]: Value }`).
-- **Clean Field Reflection**: Uses `UnqualT.tupleof` to only reflect instance data fields, ignoring methods, constructors, constants, and static members.
+- **vibe.d Serialization UDAs Compatible**:
+  - `@name("custom_name")`: Custom field name mapping in TypeScript interfaces.
+  - `@optional`: Renders optional fields (`field?: type`).
+  - `@ignore`: Excludes private / internal fields from generated TypeScript code.
+  - `@byName`: Enum serialization by string member name.
+- **REST API Client Generator (`generateTypeScriptApiClient`)**:
+  - Automatically inspects D REST interfaces (`vibe.web.rest` compatible).
+  - Infers HTTP verbs (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) and `@path("/api/v1/resource/:id")` endpoints.
+  - Generates strongly-typed asynchronous TypeScript API Client classes using native `fetch`.
+- **Recursive Type Discovery**: Automatically finds and emits all nested structs, classes, and enums referenced in your fields, return types, or parameters.
+- **Nullable & Datetime Support**: Supports `std.typecons.Nullable!T` (`T | null`) and `std.datetime` types (`SysTime`, `DateTime`, `Date` -> `string`).
 
 ---
 
@@ -37,96 +43,149 @@ dub add ts_generator
 
 ---
 
-## Quick Example
+## Usage Examples
 
-### 1. Define D Types and Export
+### 1. Generating TypeScript Models
 
 ```d
 import std.file : write, mkdirRecurse;
-import std.path : dirName;
 import ts_generator;
 
-enum UserRole {
-    admin,
-    user,
-    guest
-}
-
-enum StrEnum : string {
-    first = "FIRST_VAL",
-    second = "SECOND_VAL"
-}
+struct optional {}
+struct ignore {}
+struct name { string value; }
 
 struct UserProfile {
-    string nickname;
-    int age;
-    UserRole role;
-}
-
-struct ServerResponse {
-    uint statusCode;
-    string message;
-    UserProfile user;
-    UserProfile[] history;
-    StrEnum strKind;
+    @name("user_id") int id;
+    string username;
+    @optional string bio;
+    @ignore string internalSecurityToken;
 }
 
 void main()
 {
-    // Generate TypeScript type declarations
-    string ts = generateTypeScript!(ServerResponse)();
-
-    // Export to frontend file
+    string ts = generateTypeScript!(UserProfile)();
     mkdirRecurse("frontend/src/types");
     write("frontend/src/types/api.d.ts", ts);
 }
 ```
 
-### 2. Output (`frontend/src/types/api.d.ts`)
+**Output (`frontend/src/types/api.d.ts`):**
 
 ```typescript
-export enum UserRole {
-    admin = 0,
-    user = 1,
-    guest = 2,
-}
-
 export interface UserProfile {
-    nickname: string;
-    age: number;
-    role: UserRole;
-}
-
-export enum StrEnum {
-    first = "FIRST_VAL",
-    second = "SECOND_VAL",
-}
-
-export interface ServerResponse {
-    statusCode: number;
-    message: string;
-    user: UserProfile;
-    history: UserProfile[];
-    strKind: StrEnum;
+    user_id: number;
+    username: string;
+    bio?: string;
 }
 ```
 
 ---
 
-## Supported Type Mapping
+### 2. Generating a Full REST API Fetch Client (`vibe.web.rest` compatible)
 
-| D Type | TypeScript Equivalent |
-|---|---|
-| `string`, `wstring`, `dstring`, `char` | `string` |
-| `bool` | `boolean` |
-| `int`, `uint`, `long`, `float`, `double`, etc. | `number` |
-| `SysTime`, `DateTime`, `Date` | `string` |
-| `Nullable!T` | `T \| null` |
-| `T[]` | `T[]` |
-| `V[K]` | `{ [key: string]: V }` |
-| `enum` (numeric) | `export enum EnumName { member = 0, ... }` |
-| `enum` (string) | `export enum EnumName { member = "val", ... }` |
-| `struct`, `class` | `export interface Name { ... }` |
+```d
+import std.file : write, mkdirRecurse;
+import ts_generator;
+
+struct path { string value; }
+struct optional {}
+
+struct UserProfile {
+    int id;
+    string username;
+    @optional string bio;
+}
+
+struct CreateUserDto {
+    string username;
+    @optional string bio;
+}
+
+interface UserApi {
+    @path("/api/v1/users")
+    UserProfile[] getUsers();
+
+    @path("/api/v1/users/:id")
+    UserProfile getUser(int id);
+
+    @path("/api/v1/users")
+    UserProfile createUser(CreateUserDto dto);
+
+    @path("/api/v1/users/:id")
+    void deleteUser(int id);
+}
+
+void main()
+{
+    // Generates both data models AND the TypeScript API client class
+    string code = generateTypeScriptApiClient!(UserApi)();
+    
+    mkdirRecurse("frontend/src/api");
+    write("frontend/src/api/client.ts", code);
+}
+```
+
+**Output (`frontend/src/api/client.ts`):**
+
+```typescript
+export interface UserProfile {
+    id: number;
+    username: string;
+    bio?: string;
+}
+
+export interface CreateUserDto {
+    username: string;
+    bio?: string;
+}
+
+export class UserApiClient {
+    private baseUrl: string;
+    private fetchFn: typeof fetch;
+
+    constructor(baseUrl: string = '', fetchFn: typeof fetch = fetch) {
+        this.baseUrl = baseUrl;
+        this.fetchFn = fetchFn;
+    }
+
+    async getUsers(): Promise<UserProfile[]> {
+        const response = await this.fetchFn(`${this.baseUrl}/api/v1/users`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        return await response.json();
+    }
+
+    async getUser(id: number): Promise<UserProfile> {
+        const response = await this.fetchFn(`${this.baseUrl}/api/v1/users/${id}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        return await response.json();
+    }
+
+    async createUser(dto: CreateUserDto): Promise<UserProfile> {
+        const response = await this.fetchFn(`${this.baseUrl}/api/v1/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(dto)
+        });
+        if (!response.ok) throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        return await response.json();
+    }
+
+    async deleteUser(id: number): Promise<void> {
+        const response = await this.fetchFn(`${this.baseUrl}/api/v1/users/${id}`, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+    }
+}
+```
 
 ---
 
@@ -138,24 +197,17 @@ To run unit tests:
 dub test
 ```
 
-To run the included example app:
+To run the basic example:
 
 ```bash
 dub run :example
 ```
 
----
+To run the vibe.d REST Client example:
 
-## Publishing to DUB Registry
-
-To publish new releases to [code.dlang.org](https://code.dlang.org/):
-
-1. Tag the release in git:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-2. Register the repository at [https://code.dlang.org/publish](https://code.dlang.org/publish).
+```bash
+dub run :example_vibe
+```
 
 ---
 
