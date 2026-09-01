@@ -1,0 +1,20 @@
+# DUB build output
+.dub/
+docs.json
+__dummy.html
+docs/
+
+# Binaries & libraries
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
+ts_generator-test-*
+
+# Generated output from example app
+frontend/

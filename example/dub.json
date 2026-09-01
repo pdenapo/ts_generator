@@ -1,0 +1,13 @@
+{
+	"name": "example",
+	"description": "Example application demonstrating ts_generator usage",
+	"targetType": "executable",
+	"sourcePaths": [
+		"source"
+	],
+	"dependencies": {
+		"ts_generator": {
+			"path": ".."
+		}
+	}
+}

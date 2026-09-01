@@ -1,0 +1,13 @@
+{
+	"name": "example_vibe",
+	"description": "Example application demonstrating vibe.d REST API interface and Fetch client generation",
+	"targetType": "executable",
+	"sourcePaths": [
+		"source"
+	],
+	"dependencies": {
+		"ts_generator": {
+			"path": ".."
+		}
+	}
+}

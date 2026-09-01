@@ -1,0 +1,19 @@
+{
+	"name": "ts_generator",
+	"description": "Automatic TypeScript interface and enum code generator from D types using compile-time reflection (traits & CTFE).",
+	"license": "MIT",
+	"authors": [
+		"Pablo De Nápoli"
+	],
+	"copyright": "Copyright © 2026, Pablo De Nápoli",
+	"targetType": "library",
+	"sourcePaths": [
+		"source"
+	],
+	"importPaths": [
+		"source"
+	],
+	"subPackages": [
+		"./example"
+	]
+}
