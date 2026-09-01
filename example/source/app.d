@@ -6,24 +6,28 @@ import std.process : executeShell;
 import core.stdc.stdlib : exit;
 import ts_generator;
 
-enum UserRole {
+enum UserRole
+{
     admin,
     user,
     guest
 }
 
-enum StrEnum : string {
+enum StrEnum : string
+{
     first = "FIRST_VAL",
     second = "SECOND_VAL"
 }
 
-struct UserProfile {
+struct UserProfile
+{
     string nickname;
     int age;
     UserRole role;
 }
 
-struct ServerResponse {
+struct ServerResponse
+{
     uint statusCode;
     string message;
     UserProfile user;
@@ -34,14 +38,13 @@ struct ServerResponse {
 void main(string[] args)
 {
     bool verify = false;
-    auto helpInformation = getopt(
-        args,
-        "verify|v", "Verify generated TypeScript syntax with the TypeScript compiler (tsc)", &verify
-    );
+    auto helpInformation = getopt(args, "verify|v",
+            "Verify generated TypeScript syntax with the TypeScript compiler (tsc)", &verify);
 
     if (helpInformation.helpWanted)
     {
-        defaultGetoptPrinter("TypeScript generator basic example application", helpInformation.options);
+        defaultGetoptPrinter("TypeScript generator basic example application",
+                helpInformation.options);
         return;
     }
 

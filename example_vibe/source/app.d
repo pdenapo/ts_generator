@@ -4,18 +4,33 @@ import std.stdio : writeln;
 import ts_generator;
 
 // Mock / Vibe.d style Serialization UDAs
-struct optional {}
-struct ignore {}
-struct name { string value; }
-struct path { string value; }
+struct optional
+{
+}
 
-enum UserStatus {
+struct ignore
+{
+}
+
+struct name
+{
+    string value;
+}
+
+struct path
+{
+    string value;
+}
+
+enum UserStatus
+{
     @name("ACTIVE") active,
     @name("SUSPENDED") suspended,
     @name("INACTIVE") inactive
 }
 
-struct UserProfile {
+struct UserProfile
+{
     @name("user_id") int id;
     string username;
     string email;
@@ -25,13 +40,15 @@ struct UserProfile {
     UserStatus status;
 }
 
-struct CreateUserDto {
+struct CreateUserDto
+{
     string username;
     string email;
     @optional string bio;
 }
 
-struct UpdateUserDto {
+struct UpdateUserDto
+{
     @optional string username;
     @optional string email;
     @optional string bio;
@@ -39,7 +56,8 @@ struct UpdateUserDto {
 }
 
 // vibe.web.rest style API interface
-interface UserApi {
+interface UserApi
+{
     @path("/api/v1/users")
     UserProfile[] getUsers();
 

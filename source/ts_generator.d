@@ -13,31 +13,44 @@ import std.datetime : SysTime, DateTime, Date;
 // UDA Reflection Helpers (Compatible with vibe.d UDAs: @name, @optional, @ignore, @path)
 // ============================================================================
 
-private template getFieldName(alias symbol) {
-    static string impl() {
+private template getFieldName(alias symbol)
+{
+    static string impl()
+    {
         string fieldName = __traits(identifier, symbol);
-        static foreach (attr; __traits(getAttributes, symbol)) {
+        static foreach (attr; __traits(getAttributes, symbol))
+        {
             {
-                static if (__traits(compiles, attr.value)) {
+                static if (__traits(compiles, attr.value))
+                {
                     fieldName = attr.value;
-                } else static if (is(typeof(attr) == string)) {
+                }
+                else static if (is(typeof(attr) == string))
+                {
                     fieldName = attr;
                 }
             }
         }
         return fieldName;
     }
+
     enum getFieldName = impl();
 }
 
-private template isOptionalField(alias symbol) {
-    static bool impl() {
+private template isOptionalField(alias symbol)
+{
+    static bool impl()
+    {
         bool isOpt = false;
-        static foreach (attr; __traits(getAttributes, symbol)) {
+        static foreach (attr; __traits(getAttributes, symbol))
+        {
             {
-                static if (__traits(compiles, attr.stringof)) {
+                static if (__traits(compiles, attr.stringof))
+                {
                     string sStr = attr.stringof;
-                    if (sStr == "optional" || sStr == "optional()" || sStr == "@optional" || sStr.canFind("optional")) {
+                    if (sStr == "optional" || sStr == "optional()"
+                            || sStr == "@optional" || sStr.canFind("optional"))
+                    {
                         isOpt = true;
                     }
                 }
@@ -45,17 +58,24 @@ private template isOptionalField(alias symbol) {
         }
         return isOpt;
     }
+
     enum isOptionalField = impl();
 }
 
-private template isIgnoredField(alias symbol) {
-    static bool impl() {
+private template isIgnoredField(alias symbol)
+{
+    static bool impl()
+    {
         bool isIgn = false;
-        static foreach (attr; __traits(getAttributes, symbol)) {
+        static foreach (attr; __traits(getAttributes, symbol))
+        {
             {
-                static if (__traits(compiles, attr.stringof)) {
+                static if (__traits(compiles, attr.stringof))
+                {
                     string sStr = attr.stringof;
-                    if (sStr == "ignore" || sStr == "ignore()" || sStr == "@ignore" || sStr.canFind("ignore")) {
+                    if (sStr == "ignore" || sStr == "ignore()"
+                            || sStr == "@ignore" || sStr.canFind("ignore"))
+                    {
                         isIgn = true;
                     }
                 }
@@ -63,26 +83,35 @@ private template isIgnoredField(alias symbol) {
         }
         return isIgn;
     }
+
     enum isIgnoredField = impl();
 }
 
-private template getRoutePath(alias symbol) {
-    static string impl() {
+private template getRoutePath(alias symbol)
+{
+    static string impl()
+    {
         string route = "";
-        static foreach (attr; __traits(getAttributes, symbol)) {
+        static foreach (attr; __traits(getAttributes, symbol))
+        {
             {
-                static if (__traits(compiles, attr.value)) {
+                static if (__traits(compiles, attr.value))
+                {
                     route = attr.value;
-                } else static if (is(typeof(attr) == string)) {
+                }
+                else static if (is(typeof(attr) == string))
+                {
                     route = attr;
                 }
             }
         }
-        if (route.length == 0) {
+        if (route.length == 0)
+        {
             route = "/" ~ __traits(identifier, symbol);
         }
         return route;
     }
+
     enum getRoutePath = impl();
 }
 
@@ -129,7 +158,8 @@ public string toTsType(T)()
 /**
  * Helper template to extract foundational underlying type(s) from composite types.
  */
-template BaseTypes(T) {
+template BaseTypes(T)
+{
     alias U = Unqual!T;
     static if (is(U == enum))
         alias BaseTypes = AliasSeq!(U);
@@ -137,7 +167,8 @@ template BaseTypes(T) {
         alias BaseTypes = BaseTypes!V;
     else static if (isPointer!U)
         alias BaseTypes = BaseTypes!(PointerTarget!U);
-    else static if (isSomeString!U || is(U == SysTime) || is(U == DateTime) || is(U == Date) || is(U == void))
+    else static if (isSomeString!U || is(U == SysTime) || is(U == DateTime)
+            || is(U == Date) || is(U == void))
         alias BaseTypes = AliasSeq!();
     else static if (isArray!U)
         alias BaseTypes = BaseTypes!(ForeachType!U);
@@ -158,35 +189,46 @@ public string generateTypeScript(Types...)()
     Appender!string sb;
     bool[string] visited;
 
-    void processType(T)() {
+    void processType(T)()
+    {
         alias UnqualT = Unqual!T;
         string name = UnqualT.stringof;
 
-        if (name in visited) return;
+        if (name in visited)
+            return;
         visited[name] = true;
 
-        static if (is(UnqualT == enum)) {
+        static if (is(UnqualT == enum))
+        {
             sb.put(format("export enum %s {\n", name));
-            static foreach (member; EnumMembers!UnqualT) {
+            static foreach (member; EnumMembers!UnqualT)
+            {
                 {
                     alias OrigT = OriginalType!UnqualT;
                     string memberName = getFieldName!member;
-                    static if (isSomeString!OrigT) {
-                        sb.put(format("    %s = \"%s\",\n", memberName, cast(string)member));
-                    } else {
-                        sb.put(format("    %s = %s,\n", memberName, cast(long)member));
+                    static if (isSomeString!OrigT)
+                    {
+                        sb.put(format("    %s = \"%s\",\n", memberName, cast(string) member));
+                    }
+                    else
+                    {
+                        sb.put(format("    %s = %s,\n", memberName, cast(long) member));
                     }
                 }
             }
             sb.put("}\n\n");
         }
-        else static if (is(UnqualT == struct) || is(UnqualT == class)) {
+        else static if (is(UnqualT == struct) || is(UnqualT == class))
+        {
             // First, recursively discover and process dependency types used by fields
-            static foreach (i, field; UnqualT.tupleof) {
+            static foreach (i, field; UnqualT.tupleof)
+            {
                 {
-                    static if (!isIgnoredField!(UnqualT.tupleof[i])) {
+                    static if (!isIgnoredField!(UnqualT.tupleof[i]))
+                    {
                         alias memType = typeof(field);
-                        static foreach (BaseT; BaseTypes!memType) {
+                        static foreach (BaseT; BaseTypes!memType)
+                        {
                             processType!BaseT();
                         }
                     }
@@ -194,9 +236,11 @@ public string generateTypeScript(Types...)()
             }
 
             sb.put(format("export interface %s {\n", name));
-            static foreach (i, field; UnqualT.tupleof) {
+            static foreach (i, field; UnqualT.tupleof)
+            {
                 {
-                    static if (!isIgnoredField!(UnqualT.tupleof[i])) {
+                    static if (!isIgnoredField!(UnqualT.tupleof[i]))
+                    {
                         alias memType = typeof(field);
                         string fieldName = getFieldName!(UnqualT.tupleof[i]);
                         bool isOpt = isOptionalField!(UnqualT.tupleof[i]);
@@ -210,7 +254,8 @@ public string generateTypeScript(Types...)()
         }
     }
 
-    static foreach (T; Types) {
+    static foreach (T; Types)
+    {
         processType!T();
     }
 
@@ -221,13 +266,19 @@ public string generateTypeScript(Types...)()
 // REST API Interface -> TypeScript Fetch Client Generator
 // ============================================================================
 
-private string inferHttpVerb(string methodName)() {
+private string inferHttpVerb(string methodName)()
+{
     string lower = methodName.toLower();
-    if (lower.startsWith("get") || lower.startsWith("query") || lower.startsWith("find")) return "GET";
-    if (lower.startsWith("post") || lower.startsWith("create") || lower.startsWith("add")) return "POST";
-    if (lower.startsWith("put") || lower.startsWith("update") || lower.startsWith("set")) return "PUT";
-    if (lower.startsWith("patch")) return "PATCH";
-    if (lower.startsWith("delete") || lower.startsWith("remove")) return "DELETE";
+    if (lower.startsWith("get") || lower.startsWith("query") || lower.startsWith("find"))
+        return "GET";
+    if (lower.startsWith("post") || lower.startsWith("create") || lower.startsWith("add"))
+        return "POST";
+    if (lower.startsWith("put") || lower.startsWith("update") || lower.startsWith("set"))
+        return "PUT";
+    if (lower.startsWith("patch"))
+        return "PATCH";
+    if (lower.startsWith("delete") || lower.startsWith("remove"))
+        return "DELETE";
     return "POST";
 }
 
@@ -240,34 +291,45 @@ public string generateTypeScriptApiClient(Apis...)()
     Appender!string sb;
     bool[string] visited;
 
-    void processType(T)() {
+    void processType(T)()
+    {
         alias UnqualT = Unqual!T;
         string name = UnqualT.stringof;
 
-        if (name in visited) return;
+        if (name in visited)
+            return;
         visited[name] = true;
 
-        static if (is(UnqualT == enum)) {
+        static if (is(UnqualT == enum))
+        {
             sb.put(format("export enum %s {\n", name));
-            static foreach (member; EnumMembers!UnqualT) {
+            static foreach (member; EnumMembers!UnqualT)
+            {
                 {
                     alias OrigT = OriginalType!UnqualT;
                     string memberName = getFieldName!member;
-                    static if (isSomeString!OrigT) {
-                        sb.put(format("    %s = \"%s\",\n", memberName, cast(string)member));
-                    } else {
-                        sb.put(format("    %s = %s,\n", memberName, cast(long)member));
+                    static if (isSomeString!OrigT)
+                    {
+                        sb.put(format("    %s = \"%s\",\n", memberName, cast(string) member));
+                    }
+                    else
+                    {
+                        sb.put(format("    %s = %s,\n", memberName, cast(long) member));
                     }
                 }
             }
             sb.put("}\n\n");
         }
-        else static if (is(UnqualT == struct) || is(UnqualT == class)) {
-            static foreach (i, field; UnqualT.tupleof) {
+        else static if (is(UnqualT == struct) || is(UnqualT == class))
+        {
+            static foreach (i, field; UnqualT.tupleof)
+            {
                 {
-                    static if (!isIgnoredField!(UnqualT.tupleof[i])) {
+                    static if (!isIgnoredField!(UnqualT.tupleof[i]))
+                    {
                         alias memType = typeof(field);
-                        static foreach (BaseT; BaseTypes!memType) {
+                        static foreach (BaseT; BaseTypes!memType)
+                        {
                             processType!BaseT();
                         }
                     }
@@ -275,9 +337,11 @@ public string generateTypeScriptApiClient(Apis...)()
             }
 
             sb.put(format("export interface %s {\n", name));
-            static foreach (i, field; UnqualT.tupleof) {
+            static foreach (i, field; UnqualT.tupleof)
+            {
                 {
-                    static if (!isIgnoredField!(UnqualT.tupleof[i])) {
+                    static if (!isIgnoredField!(UnqualT.tupleof[i]))
+                    {
                         alias memType = typeof(field);
                         string fieldName = getFieldName!(UnqualT.tupleof[i]);
                         bool isOpt = isOptionalField!(UnqualT.tupleof[i]);
@@ -292,20 +356,26 @@ public string generateTypeScriptApiClient(Apis...)()
     }
 
     // 1. Discover all model types used across all API interface methods
-    static foreach (Api; Apis) {
+    static foreach (Api; Apis)
+    {
         {
-            static foreach (member; __traits(allMembers, Api)) {
+            static foreach (member; __traits(allMembers, Api))
+            {
                 {
                     alias method = __traits(getMember, Api, member);
-                    static if (isFunction!method) {
+                    static if (isFunction!method)
+                    {
                         alias RetT = ReturnType!method;
                         alias ParamTypes = Parameters!method;
 
-                        static foreach (BaseT; BaseTypes!RetT) {
+                        static foreach (BaseT; BaseTypes!RetT)
+                        {
                             processType!BaseT();
                         }
-                        static foreach (P; ParamTypes) {
-                            static foreach (BaseT; BaseTypes!P) {
+                        static foreach (P; ParamTypes)
+                        {
+                            static foreach (BaseT; BaseTypes!P)
+                            {
                                 processType!BaseT();
                             }
                         }
@@ -316,7 +386,8 @@ public string generateTypeScriptApiClient(Apis...)()
     }
 
     // 2. Generate TypeScript API Client classes
-    static foreach (Api; Apis) {
+    static foreach (Api; Apis)
+    {
         {
             string className = Api.stringof ~ "Client";
             sb.put(format("export class %s {\n", className));
@@ -327,10 +398,12 @@ public string generateTypeScriptApiClient(Apis...)()
             sb.put("        this.fetchFn = fetchFn;\n");
             sb.put("    }\n\n");
 
-            static foreach (member; __traits(allMembers, Api)) {
+            static foreach (member; __traits(allMembers, Api))
+            {
                 {
                     alias method = __traits(getMember, Api, member);
-                    static if (isFunction!method) {
+                    static if (isFunction!method)
+                    {
                         alias RetT = ReturnType!method;
                         alias ParamTypes = Parameters!method;
                         alias paramNames = ParameterIdentifierTuple!method;
@@ -341,15 +414,18 @@ public string generateTypeScriptApiClient(Apis...)()
                         Appender!string paramsSb;
                         string bodyParamName = "";
 
-                        static foreach (i, P; ParamTypes) {
+                        static foreach (i, P; ParamTypes)
+                        {
                             {
-                                if (i > 0) paramsSb.put(", ");
+                                if (i > 0)
+                                    paramsSb.put(", ");
                                 string pName = paramNames[i];
                                 paramsSb.put(pName);
                                 paramsSb.put(": ");
                                 paramsSb.put(toTsType!P());
 
-                                static if (is(Unqual!P == struct) || is(Unqual!P == class)) {
+                                static if (is(Unqual!P == struct) || is(Unqual!P == class))
+                                {
                                     bodyParamName = pName;
                                 }
                             }
@@ -357,33 +433,36 @@ public string generateTypeScriptApiClient(Apis...)()
 
                         // Convert :param to ${param} in routePath
                         string formattedPath = routePath;
-                        static foreach (i, P; ParamTypes) {
+                        static foreach (i, P; ParamTypes)
+                        {
                             {
                                 string pName = paramNames[i];
-                                formattedPath = formattedPath.replace(":" ~ pName, "${" ~ pName ~ "}");
+                                formattedPath = formattedPath.replace(":" ~ pName, "${" ~ pName
+                                        ~ "}");
                             }
                         }
 
                         string returnTsType = (is(RetT == void)) ? "void" : toTsType!RetT();
-                        sb.put(format("    async %s(%s): Promise<%s> {\n", member, paramsSb.data, returnTsType));
+                        sb.put(format("    async %s(%s): Promise<%s> {\n",
+                                member, paramsSb.data, returnTsType));
 
-                        string headers = (bodyParamName.length > 0)
-                            ? "{ 'Content-Type': 'application/json', 'Accept': 'application/json' }"
-                            : "{ 'Accept': 'application/json' }";
+                        string headers = (bodyParamName.length > 0) ? "{ 'Content-Type': 'application/json', 'Accept': 'application/json' }" : "{ 'Accept': 'application/json' }";
 
-                        string bodyString = (bodyParamName.length > 0)
-                            ? format(",\n            body: JSON.stringify(%s)", bodyParamName)
-                            : "";
+                        string bodyString = (bodyParamName.length > 0) ? format(
+                                ",\n            body: JSON.stringify(%s)", bodyParamName) : "";
 
-                        sb.put(format("        const response = await this.fetchFn(`${this.baseUrl}%s`, {\n", formattedPath));
+                        sb.put(format("        const response = await this.fetchFn(`${this.baseUrl}%s`, {\n",
+                                formattedPath));
                         sb.put(format("            method: '%s',\n", verb));
                         sb.put(format("            headers: %s%s\n", headers, bodyString));
                         sb.put("        });\n");
                         sb.put("        if (!response.ok) {\n");
-                        sb.put("            throw new Error(`HTTP error ${response.status}: ${response.statusText}`);\n");
+                        sb.put(
+                                "            throw new Error(`HTTP error ${response.status}: ${response.statusText}`);\n");
                         sb.put("        }\n");
 
-                        static if (!is(RetT == void)) {
+                        static if (!is(RetT == void))
+                        {
                             sb.put("        return await response.json();\n");
                         }
                         sb.put("    }\n\n");
@@ -419,11 +498,21 @@ unittest
 {
     import std.string : indexOf;
 
-    struct optional {}
-    struct ignore {}
-    struct name { string value; }
+    struct optional
+    {
+    }
 
-    struct UserWithUDAs {
+    struct ignore
+    {
+    }
+
+    struct name
+    {
+        string value;
+    }
+
+    struct UserWithUDAs
+    {
         @name("user_id") int id;
         string username;
         @optional string bio;
@@ -442,18 +531,24 @@ unittest
 {
     import std.string : indexOf;
 
-    struct path { string value; }
+    struct path
+    {
+        string value;
+    }
 
-    struct Item {
+    struct Item
+    {
         int id;
         string title;
     }
 
-    struct CreateItemDto {
+    struct CreateItemDto
+    {
         string title;
     }
 
-    interface ItemApi {
+    interface ItemApi
+    {
         @path("/api/items")
         Item[] getItems();
 
